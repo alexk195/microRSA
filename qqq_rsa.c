@@ -1,6 +1,7 @@
+#include <cstdlib>
+#include <cstring>
+
 #include "qqq_rsa.h"
-#include <string.h>
-#include <stdlib.h>
 
 //============================================
 //bignum8 header
@@ -19,15 +20,15 @@ void bignum8_imodulate(bignum8* v, bignum8* n);
 void bignum8_setlength(bignum8* b, int len);
 void bignum8_setminlen(bignum8* v);
 uint8_t bignum8_getminlen(bignum8* v);
-bignum8* bignum8_encode(bignum8* m, bignum8* n);
+bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds);
 bignum8* bignum8_frombin(uint8_t* bin, int len);
 //============================================
 
 bignum8* bignum8_init(int capacity) {
-  bignum8* b = malloc(sizeof(bignum8));
+  bignum8* b = (bignum8*)malloc(sizeof(bignum8));
   b->length = 0;
   b->capacity = capacity;
-  b->data = calloc(capacity, sizeof(uint8_t));
+  b->data = (uint8_t*)calloc(capacity, sizeof(uint8_t));
   return b;
 }
 
@@ -55,7 +56,7 @@ void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
       int k = 0;
       while(carry > 0) {
         carry += result->data[i+j+k];
-        result->data[i+j+k] = carry;
+        result->data[i+j+k] = uint8_t(carry);
         carry >>= 8;
         k++;
       }
@@ -86,7 +87,7 @@ void shift_l8(unsigned char *a, int len){
 
 //get minimum length to hold number (left trim zeroes)
 uint8_t bignum8_getminlen(bignum8* v){
-  return (bignum8_bitlen(v)+7)/8;
+  return uint8_t((bignum8_bitlen(v)+7)/8);
 }
 
 //count number of bits
@@ -128,7 +129,7 @@ void bignum8_imodulate(bignum8* v, bignum8* n){
     for(int i=0;i<n->length;i++) {
       carry += v->data[byteshift+i];
       carry -= n->data[i];
-      v->data[byteshift+i] = carry & 0xff;
+      v->data[byteshift+i] = uint8_t(carry & 0xff);
       if(carry&0x100) carry=0xffff; else carry=0;
     }
 
@@ -138,7 +139,7 @@ void bignum8_imodulate(bignum8* v, bignum8* n){
       for(int i=0;i<n->length;i++) {
         carry += v->data[byteshift+i];
         carry += n->data[i];
-        v->data[byteshift+i] = carry & 0xff;
+        v->data[byteshift+i] = uint8_t(carry & 0xff);
         if(carry&0x100) carry=1; else carry=0;
       }
     }
@@ -163,7 +164,7 @@ void bignum8_setlength(bignum8* b, int len) {
 //    Serial.print(" to ");    
 //    Serial.println(len);
     b->capacity = len;
-    b->data = realloc(b->data, b->capacity);
+    b->data = (uint8_t*)realloc(b->data, b->capacity);
   }else{
 //    Serial.println("setlength() NO realloc\n");
   }
@@ -172,7 +173,7 @@ void bignum8_setlength(bignum8* b, int len) {
 }
 
 //encode with exponent=3
-bignum8* bignum8_encode(bignum8* m, bignum8* n) {
+bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds) {
   bignum8 *v2 = bignum8_init(2*n->capacity);
   bignum8 *v = bignum8_init(n->capacity);
 
@@ -180,7 +181,7 @@ bignum8* bignum8_encode(bignum8* m, bignum8* n) {
   bignum8_imodulate(v2, n);
   bignum8_copy(v2,v); //v=m^2 
 
-  for(uint8_t i=0;i<RSA_E_ROUNDS-1;i++) {
+  for(uint8_t i=0;i<rounds-1;i++) {
     bignum8_multiply(v2,v,v); //v2=v^2
     bignum8_imodulate(v2, n);
     bignum8_copy(v2,v); //v=v^2 
@@ -210,7 +211,7 @@ uint8_t bignum8_tobin(bignum8* v, uint8_t* bin, int len) {
 }
 
 
-uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc) {
+uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc, uint8_t rounds, uint8_t RSA_BYTES) {
   uint8_t retval;
   //check msg < modulus
   if(msg_enc[0] >= modulus[0]) return RSA_DATA_TOO_LARGE_FOR_MODULUS;
@@ -222,7 +223,7 @@ uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc) {
   bignum8 *m8 = bignum8_frombin(msg_enc, RSA_BYTES);
  
   //compute crypt
-  bignum8 *c8 = bignum8_encode(m8,n8);
+  bignum8 *c8 = bignum8_encode(m8,n8, rounds);
 
   //store result
   retval = bignum8_tobin(c8, msg_enc, RSA_BYTES);
@@ -234,7 +235,7 @@ uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc) {
   return retval;
 }
 
-uint8_t rsa_encrypt_pkcs(uint8_t* modulus, uint8_t* msg, uint8_t msglen, uint8_t* rnd_enc) {
+uint8_t rsa_encrypt_pkcs(uint8_t* modulus, uint8_t* msg, uint8_t msglen, uint8_t* rnd_enc, uint8_t rounds, uint8_t RSA_BYTES) {
   if(msglen>RSA_BYTES-11) return RSA_DATA_TOO_LARGE_FOR_PADDING;
 
   //PKCS#1 v1.5 padding: 0x00 0x02 {random bytes != 0x00} 0x00 {msg[msglen]}
@@ -243,9 +244,9 @@ uint8_t rsa_encrypt_pkcs(uint8_t* modulus, uint8_t* msg, uint8_t msglen, uint8_t
     rnd_enc[RSA_BYTES-1-i] = msg[msglen-1-i];
   }
   rnd_enc[RSA_BYTES-1-msglen]=0x00;
-  for(uint8_t i=RSA_BYTES-1-msglen-1; i>1; i--) if(rnd_enc[i] == 0x00) rnd_enc[i] = i+1;
+  for(uint8_t i=uint8_t(RSA_BYTES-1-msglen-1); i>1; i--) if(rnd_enc[i] == 0x00) rnd_enc[i] = i+1;
   rnd_enc[1] = 0x02;
   rnd_enc[0] = 0x00;
   
-  return rsa_encrypt_raw(modulus, rnd_enc);
+  return rsa_encrypt_raw(modulus, rnd_enc,rounds, RSA_BYTES);
 }
