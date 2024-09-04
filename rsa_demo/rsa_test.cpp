@@ -15,11 +15,14 @@
 #include "qqq_rsa.h"
 
 // use 512/8 or 1024/8 or 2048/8
-#define RSA_BYTES (512/8)
+#define RSA_BYTES (1024/8)
 
 /**
- * Performance on SAMD21 RSA512/rounds=16 is 783ms for raw encrypt
- 
+ * Performance on SAMD21 for raw encrypt:
+ *        RSA512/rounds=16 => 783ms
+ *        RSA1024/rounds=1 => 365ms
+ *        RSA2048/rounds=16 => 12s
+ *
  * Generate sample data for 2048 bit (for 512 or 1024 accordingly)
  * >openssl genrsa -out rsa2048.pem 2048
  * Make sure it says "e is 65537". Then rounds=16
@@ -27,10 +30,12 @@
  * >openssl rsa -in rsa2048.pem -noout -modulus
  * Fill some clear text message
  * >echo "Hello RSA Encryption 2048 bit" >  clear_text.bin
- * Encrypt, but actually use decrypt param so we can use smaller input file and it matches the implementation
+ * Encrypt, but actually use decrypt param so we can use smaller input file, and it matches the implementation
  * >openssl rsautl -raw -decrypt -inkey rsa2048.pem -in clear_text.bin -out encrypted.bin
  * Copy tne encrypted.bin to code enc_msg_s
  * >xxd -p encrypted.bin
+ * Faster execution with rounds=1, e=3:
+ *  Use openssl genrsa -3 ...
  **/
 
 //RSA512
@@ -39,6 +44,13 @@ const char* modulus_s=    "CAA0D3DA5F211A9C79487BEA2D07268254F7572225D602B5029DA
 const char* enc_msg_s =   "554caffe87ac187d5680d3658289b466459475f9487c7c1cec7dbe76ea4f48132af43cd543bc9d49545136ab4fc7e919ecf088b3937ad776beb6fe69af8c86f1";
 const uint8_t rounds = 16;
 #endif
+
+#if RSA_BYTES == 128
+const char* modulus_s = "C80FAD66A8B4DFEC5BC7762460F45FE842F850BAC73501E5E57358F7E9B87082D2A0332B55C27E3467C2690F75561675FFCCA66DD52402A6BB247ADE00DE3B1D630782F47F142530B634AA3C06EDAE6B1C723C199897398780241B930278827AD595BAE37F3AAFC69843250AC92AF744780790B1804C40919F23725C9B09FB49";
+const char* enc_msg_s = "6fca7f1de35e67e2117aae0856bd7243d307d981f228f42804ae9b6349cb5e9ddf189c1c432df89cea5971d8266a8f0e464ce795f76294dabf0d68ac0f740cdd3735a2df3f93a6251b478acabafe9f191da6a91728483e2d0f97305e71a488d25c9b5a293e0f3c459de39ad99137ab164c2f254a0e1d1de8e167658f3eb68167";
+const uint8_t rounds = 1;
+#endif
+
 //RSA 2048
 #if RSA_BYTES == 256
 const char* modulus_s=  "C5034DFA9676B90C741609C7386BC86046BEB695853846E0CE5CCD4C67FE4FFBBF3BE0DB2BA3BAC0B880B015A545A3FB4DBED50648D73C395F517135E19BFD5027F5ADE19E77088419083068C63945BC2C2C77F5D8E43407AE49E622A5BD2E805F209C98169F94E5FA44FA73936431963FA8A18AA41E78CAEB1C4DCADBF757545AE179741A2F84A4B647AD0A2C26B21F1B0CAE981C9F83810336D3DBB3FFCF960895D2BD23421DFD6E25B96720A7457FD04EAFA718D23637FE430E36D0A24609084CB0C3EF8994421F1A6AA0ACE80CD9F5472DB40BCD7EA467A432D21BA8AD61AA8A676497DF6A1A191C656A3FB1AEACB011ED8902AE742D354DD572C59E1CF3";
