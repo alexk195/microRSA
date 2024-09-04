@@ -19,7 +19,7 @@ int bignum8_bitlen(bignum8* v);
 void bignum8_imodulate(bignum8* v, bignum8* n);
 void bignum8_setlength(bignum8* b, int len);
 void bignum8_setminlen(bignum8* v);
-uint8_t bignum8_getminlen(bignum8* v);
+uint32_t bignum8_getminlen(bignum8* v);
 bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds);
 bignum8* bignum8_frombin(uint8_t* bin, int len);
 //============================================
@@ -68,7 +68,8 @@ void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
 
 //shift right 1 bit
 void shift_r1(unsigned char *a, int len) {
-  if(a[0]&1) return; // printf("ERROR"); //TODO
+  if(a[0]&1)
+    return;
   for(int i=0;i<len-1;i++) a[i]= (a[i]>>1) | ((a[i+1]&0x01)<<7);
   a[len-1]= (a[len-1]>>1);
 }
@@ -86,8 +87,8 @@ void shift_l8(unsigned char *a, int len){
 }
 
 //get minimum length to hold number (left trim zeroes)
-uint8_t bignum8_getminlen(bignum8* v){
-  return (uint8_t)((bignum8_bitlen(v)+7)/8);
+uint32_t bignum8_getminlen(bignum8* v){
+  return (uint32_t)((bignum8_bitlen(v)+7)/8);
 }
 
 //count number of bits
@@ -202,7 +203,7 @@ bignum8* bignum8_frombin(uint8_t* bin, int len) {
 }
 
 //returns 1 on success, 0 on failure
-uint8_t bignum8_tobin(bignum8* v, uint8_t* bin, int len) {
+uint8_t bignum8_tobin(bignum8* v, uint8_t* bin, uint32_t len) {
   uint8_t minlen = bignum8_getminlen(v);
   if(minlen>len) return RSA_BUFFER_TO_SMALL_FOR_BIGNUM;
   memset(bin, 0, len);
@@ -210,23 +211,21 @@ uint8_t bignum8_tobin(bignum8* v, uint8_t* bin, int len) {
   return RSA_OK;
 }
 
-
-uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc, uint8_t rounds, uint8_t RSA_BYTES) {
+uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc, uint8_t rounds, uint32_t rsa_bytes) {
   uint8_t retval;
   //check msg < modulus
   if(msg_enc[0] >= modulus[0]) return RSA_DATA_TOO_LARGE_FOR_MODULUS;
 
-
   //load modulus
-  bignum8 *n8 = bignum8_frombin(modulus, RSA_BYTES);
+  bignum8 *n8 = bignum8_frombin(modulus, rsa_bytes);
 
-  bignum8 *m8 = bignum8_frombin(msg_enc, RSA_BYTES);
+  bignum8 *m8 = bignum8_frombin(msg_enc, rsa_bytes);
 
   //compute crypt
   bignum8 *c8 = bignum8_encode(m8,n8, rounds);
 
   //store result
-  retval = bignum8_tobin(c8, msg_enc, RSA_BYTES);
+  retval = bignum8_tobin(c8, msg_enc, rsa_bytes);
 
   bignum8_free(c8);
   bignum8_free(m8);
@@ -235,20 +234,20 @@ uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc, uint8_t rounds, uint
   return retval;
 }
 
-uint8_t rsa_encrypt_pkcs(uint8_t* modulus, uint8_t* msg, uint8_t msglen, uint8_t* rnd_enc, uint8_t rounds, uint8_t RSA_BYTES) {
-  if(msglen>RSA_BYTES-11) return RSA_DATA_TOO_LARGE_FOR_PADDING;
+uint8_t rsa_encrypt_pkcs(uint8_t* modulus, uint8_t* msg, uint8_t msglen, uint8_t* rnd_enc, uint8_t rounds, uint32_t rsa_bytes) {
+  if(msglen>rsa_bytes-11) return RSA_DATA_TOO_LARGE_FOR_PADDING;
 
   //PKCS#1 v1.5 padding: 0x00 0x02 {random bytes != 0x00} 0x00 {msg[msglen]}
   //msg and rnd_enc are MSB first
   for(uint8_t i=0; i<msglen; i++) {
-    rnd_enc[RSA_BYTES-1-i] = msg[msglen-1-i];
+    rnd_enc[rsa_bytes-1-i] = msg[msglen-1-i];
   }
-  rnd_enc[RSA_BYTES-1-msglen]=0x00;
-  for(uint8_t i=(uint8_t)(RSA_BYTES-1-msglen-1); i>1; i--)
+  rnd_enc[rsa_bytes-1-msglen]=0x00;
+  for(uint8_t i=(uint8_t)(rsa_bytes-1-msglen-1); i>1; i--)
     if(rnd_enc[i] == 0x00)
       rnd_enc[i] = i+1;
   rnd_enc[1] = 0x02;
   rnd_enc[0] = 0x00;
   
-  return rsa_encrypt_raw(modulus, rnd_enc,rounds, RSA_BYTES);
+  return rsa_encrypt_raw(modulus, rnd_enc,rounds, rsa_bytes);
 }
