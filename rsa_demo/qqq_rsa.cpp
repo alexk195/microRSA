@@ -14,14 +14,14 @@ typedef struct _bignum8 {
 bignum8* bignum8_init(int capacity);
 void bignum8_free(bignum8* b);
 void bignum8_copy(bignum8* source, bignum8* dest);
-void bignum8_multiply(bignum8* result, bignum8* b1, bignum8* b2);
+void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b);
 int bignum8_bitlen(bignum8* v);
 void bignum8_imodulate(bignum8* v, bignum8* n);
-void bignum8_setlength(bignum8* b, int len);
-void bignum8_setminlen(bignum8* v);
+void bignum8_setlength(bignum8* b, int len, bool nozero=false);
 uint32_t bignum8_getminlen(bignum8* v);
 bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds);
 bignum8* bignum8_frombin(uint8_t* bin, int len);
+void bignum8_copy_same_capacity(bignum8* source, bignum8* dest);
 //============================================
 
 bignum8* bignum8_init(int capacity) {
@@ -40,15 +40,19 @@ void bignum8_free(bignum8* b) {
 //copy value with adjusting capacity, returns 0 on success.
 void bignum8_copy(bignum8* source, bignum8* dest) {
   int minlen = bignum8_getminlen(source);
-  bignum8_setlength(dest, minlen);
+  bignum8_setlength(dest, minlen, true);
   dest->length = minlen;
   memcpy(dest->data, source->data, minlen);
 }
 
+void bignum8_copy_same_capacity(bignum8* source, bignum8* dest) {
+  dest->length = source->length;
+  memcpy(dest->data, source->data, source->length);
+}
 
 void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
   // Allocate and zero memory for the result
-  bignum8_setlength(result, a->length + b->length);
+  bignum8_setlength(result, a->length + b->length, true);
   memset(result->data, 0, result->length);
 
   // Use nested loops to multiply each digit of a with each digit of b
@@ -163,7 +167,7 @@ void bignum8_imodulate(bignum8* v, bignum8* n){
 }
 
 //adjust length
-void bignum8_setlength(bignum8* b, int len) {
+void bignum8_setlength(bignum8* b, int len, bool nozero) {
   if(b->capacity < len) {
 //    Serial.print("setlength() WITH realloc from ");
 //    Serial.print(b->capacity);
@@ -174,23 +178,25 @@ void bignum8_setlength(bignum8* b, int len) {
   }else{
 //    Serial.println("setlength() NO realloc\n");
   }
-  for(int i=b->length; i<len; i++) b->data[i]=0; //zero the new bytes
+  if(!nozero)
+    for(int i=b->length; i<len; i++)
+      b->data[i]=0; //zero the new bytes
   b->length = len;
 }
 
 
 bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds) {
   bignum8 *v2 = bignum8_init(2*n->capacity);
-  bignum8 *v = bignum8_init(n->capacity);
+  bignum8 *v = bignum8_init(2*n->capacity);
 
   bignum8_multiply(v2,m,m); //v2=m^2
   bignum8_imodulate(v2, n);
-  bignum8_copy(v2,v); //v=m^2
+  bignum8_copy_same_capacity(v2,v); //v=m^2
 
   for(uint8_t i=0;i<rounds-1;i++) {
     bignum8_multiply(v2,v,v); //v2=v^2
     bignum8_imodulate(v2, n);
-    bignum8_copy(v2,v); //v=v^2
+    bignum8_copy_same_capacity(v2,v); //v=v^2
   }
 
   bignum8_multiply(v2, m, v); //v2=m^3
