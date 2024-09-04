@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <chrono>
 
-#include "qqq_rsa.h"
 #include "rsa_test.h"
 
 
