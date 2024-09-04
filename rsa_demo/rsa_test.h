@@ -149,11 +149,11 @@ void test512() {
   auto duration = t2-t1;
   #else
   auto t2 = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
   #endif
 
-  print("Duration:");
-  printInt(t2-t1);
+  print("Duration [us]:");
+  printInt(duration);
 
   print("\nretval=");
   print(rv == 0 ? "OK" : " ERROR");
