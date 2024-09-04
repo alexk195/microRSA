@@ -1,6 +1,6 @@
-#include <cstdlib>
-#include <cstring>
-
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 #include "qqq_rsa.h"
 
 //============================================
@@ -49,14 +49,14 @@ void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
   //result value: allocate and zero memory
   bignum8_setlength(result, a->length + b->length);
   for(int i = 0; i < a->length + b->length; i++) result->data[i] = 0;
-  
+
   for(int i = 0; i < a->length; i++) {
     for(int j = 0; j < b->length; j++) {
       uint16_t carry = ((uint16_t)a->data[i] * b->data[j]);
       int k = 0;
       while(carry > 0) {
         carry += result->data[i+j+k];
-        result->data[i+j+k] = uint8_t(carry);
+        result->data[i+j+k] = (uint8_t)(carry);
         carry >>= 8;
         k++;
       }
@@ -87,7 +87,7 @@ void shift_l8(unsigned char *a, int len){
 
 //get minimum length to hold number (left trim zeroes)
 uint8_t bignum8_getminlen(bignum8* v){
-  return uint8_t((bignum8_bitlen(v)+7)/8);
+  return (uint8_t)((bignum8_bitlen(v)+7)/8);
 }
 
 //count number of bits
@@ -129,7 +129,7 @@ void bignum8_imodulate(bignum8* v, bignum8* n){
     for(int i=0;i<n->length;i++) {
       carry += v->data[byteshift+i];
       carry -= n->data[i];
-      v->data[byteshift+i] = uint8_t(carry & 0xff);
+      v->data[byteshift+i] = (uint8_t)(carry & 0xff);
       if(carry&0x100) carry=0xffff; else carry=0;
     }
 
@@ -139,7 +139,7 @@ void bignum8_imodulate(bignum8* v, bignum8* n){
       for(int i=0;i<n->length;i++) {
         carry += v->data[byteshift+i];
         carry += n->data[i];
-        v->data[byteshift+i] = uint8_t(carry & 0xff);
+        v->data[byteshift+i] = (uint8_t)(carry & 0xff);
         if(carry&0x100) carry=1; else carry=0;
       }
     }
@@ -150,7 +150,7 @@ void bignum8_imodulate(bignum8* v, bignum8* n){
       shift_r1(n->data,n->length);
     }
   }
-  
+
   //set length
   v->length = bignum8_bitlen(v)/8+1;
   n->length = bignum8_bitlen(n)/8+1;
@@ -161,7 +161,7 @@ void bignum8_setlength(bignum8* b, int len) {
   if(b->capacity < len) {
 //    Serial.print("setlength() WITH realloc from ");
 //    Serial.print(b->capacity);
-//    Serial.print(" to ");    
+//    Serial.print(" to ");
 //    Serial.println(len);
     b->capacity = len;
     b->data = (uint8_t*)realloc(b->data, b->capacity);
@@ -179,14 +179,14 @@ bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds) {
 
   bignum8_multiply(v2,m,m); //v2=m^2
   bignum8_imodulate(v2, n);
-  bignum8_copy(v2,v); //v=m^2 
+  bignum8_copy(v2,v); //v=m^2
 
   for(uint8_t i=0;i<rounds-1;i++) {
     bignum8_multiply(v2,v,v); //v2=v^2
     bignum8_imodulate(v2, n);
-    bignum8_copy(v2,v); //v=v^2 
+    bignum8_copy(v2,v); //v=v^2
   }
-    
+
   bignum8_multiply(v2, m, v); //v2=m^3
   bignum8_imodulate(v2, n);
   bignum8_free(v);
@@ -196,7 +196,7 @@ bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds) {
 //reverse bin
 bignum8* bignum8_frombin(uint8_t* bin, int len) {
   bignum8* v = bignum8_init(len+1); //alloc 1 byte extra to prevent reallocs when doing operations
-  v->length = len; 
+  v->length = len;
   for(int i = len-1; i>=0; i--) v->data[i] = bin[len-1-i];
   return v;
 }
@@ -215,13 +215,13 @@ uint8_t rsa_encrypt_raw(uint8_t* modulus, uint8_t* msg_enc, uint8_t rounds, uint
   uint8_t retval;
   //check msg < modulus
   if(msg_enc[0] >= modulus[0]) return RSA_DATA_TOO_LARGE_FOR_MODULUS;
-  
-  
+
+
   //load modulus
   bignum8 *n8 = bignum8_frombin(modulus, RSA_BYTES);
 
   bignum8 *m8 = bignum8_frombin(msg_enc, RSA_BYTES);
- 
+
   //compute crypt
   bignum8 *c8 = bignum8_encode(m8,n8, rounds);
 
@@ -244,7 +244,9 @@ uint8_t rsa_encrypt_pkcs(uint8_t* modulus, uint8_t* msg, uint8_t msglen, uint8_t
     rnd_enc[RSA_BYTES-1-i] = msg[msglen-1-i];
   }
   rnd_enc[RSA_BYTES-1-msglen]=0x00;
-  for(uint8_t i=uint8_t(RSA_BYTES-1-msglen-1); i>1; i--) if(rnd_enc[i] == 0x00) rnd_enc[i] = i+1;
+  for(uint8_t i=(uint8_t)(RSA_BYTES-1-msglen-1); i>1; i--)
+    if(rnd_enc[i] == 0x00)
+      rnd_enc[i] = i+1;
   rnd_enc[1] = 0x02;
   rnd_enc[0] = 0x00;
   
