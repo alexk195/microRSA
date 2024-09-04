@@ -58,15 +58,20 @@ void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
   // Use nested loops to multiply each digit of a with each digit of b
   uint32_t product;
   uint32_t carry;
-  int k;
+  uint8_t *pa = a->data;
+  uint8_t *pb = b->data;
+  uint8_t *pr = result->data;
   for(int i = 0; i < a->length; i++) {
     carry = 0;
-    k=i;
+    pa = a->data+i;
+    pb = b->data;
+    pr = result->data+i;
     for(int j = 0; j < b->length; j++) {
-      product = (uint32_t)a->data[i] * b->data[j] + result->data[k] + carry;
-      result->data[k] = (uint8_t)(product & 0xFF);
+      product = (uint32_t)(*pa) * (*pb) + (*pr) + carry;
+      *pr = (uint8_t)(product & 0xFF);
       carry = product >> 8;
-      k++;
+      pb++;
+      pr++;
     }
     result->data[i + b->length] = (uint8_t)carry;
   }
