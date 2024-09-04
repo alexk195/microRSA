@@ -11,6 +11,6 @@
 
 
 int main() {
-  test512();
+  rsa_test();
   return 0;
 }

@@ -2,19 +2,27 @@
 // Created by micro on 01.09.2024.
 //
 
-#ifndef RSA_TEST_H
-#define RSA_TEST_H
 
+
+#ifdef ARDUINO
+#include <Arduino.h>
+#else
+#include <iostream>
+#include <chrono>
+#endif
 #include <iomanip>
 
 #include "qqq_rsa.h"
 
-#define RSA_BYTES (2048/8)
+// use 512/8 or 1024/8 or 2048/8
+#define RSA_BYTES (512/8)
 
 /**
- * Generate sample data for 2048 bit
+ * Performance on SAMD21 RSA512/rounds=16 is 783ms for raw encrypt
+ 
+ * Generate sample data for 2048 bit (for 512 or 1024 accordingly)
  * >openssl genrsa -out rsa2048.pem 2048
- * Make sure it says "e is 65537"
+ * Make sure it says "e is 65537". Then rounds=16
  * Dump modulus and copy to code modulus_s:
  * >openssl rsa -in rsa2048.pem -noout -modulus
  * Fill some clear text message
@@ -27,9 +35,9 @@
 
 //RSA512
 #if RSA_BYTES == 64
-const char* modulus_s=    "CBD885C939F6845BD925136F28915E0527E1AAF08BF6AB6B1AA81BE9AE9999B5A4232EDDAD717E31DF17FB29132303EB0CEC960799086C39CE634E8CFA04E6C3";
-const char* enc_msg_s =   "b2482f2731750a619c03b65fc79a244eca7c269300f989e2e02f9751f9eeddbd0d67acb271c0c07e4366d314e2d9ae5be0bcab3e69f34b35f74bd2b340121e6f";
-const uint8_t rounds = 1;
+const char* modulus_s=    "CAA0D3DA5F211A9C79487BEA2D07268254F7572225D602B5029DAE41CE3853ABB44B50430BC4D7B873E3A1577D315C84A2332F3AA23B70F3F1691BB0CBCF988D";
+const char* enc_msg_s =   "554caffe87ac187d5680d3658289b466459475f9487c7c1cec7dbe76ea4f48132af43cd543bc9d49545136ab4fc7e919ecf088b3937ad776beb6fe69af8c86f1";
+const uint8_t rounds = 16;
 #endif
 //RSA 2048
 #if RSA_BYTES == 256
@@ -46,12 +54,6 @@ const char* enc_msg_s = "3a480121b08561243b3bc5db565bbed719bb75a5503fc02497e996b
 
 const uint8_t rounds = 16;
 #endif
-
-//note: strings commented out as it does not fit in memory...
-//const char* crypt_s= "4906b7ee0adf855649f851d7008788a8afabb9ccc445ef71a5847c7f98b57982533ca2529116dc4a6f596750f14a2c4a200a1b4a6b07852ee95324a1d1413d45";
-//const char* crypt_s =        "3e16898fb408b32d8d3380da146b9e113f8b3acb5cad3e0fb51da727dce5f8d490bbb56caf49a2120e92b0370a818f97c1b47667c0556c16f84139931bc39396";
-//const char* pkcs_s= ""; //"54DBCFFA88C301182644E30E5B91926675FC23D93DB6968A1253968665210A3815B4E07E32A612C9D5691C594DC81045133FCB7F5919337D74AD89B5986026010E8EB583964ECB8101503EDAB36BC34772E6ABE56A69D4FBA29C71A0A94FFA79C7FA3283FF06BEFD81B35A7EE5D447A587D619F3B0BAE849027D975FE0234F72";
-//const char* enc_msg_s =      "4906b7ee0adf855649f851d7008788a8afabb9ccc445ef71a5847c7f98b57982533ca2529116dc4a6f596750f14a2c4a200a1b4a6b07852ee95324a1d1413d45";
 
 const char* msg_expected_s = enc_msg_s;
 
@@ -152,7 +154,7 @@ void printInt(int i) {
 #endif
 }
 
-void test512() {
+void rsa_test() {
   uint8_t modulus[RSA_BYTES];
   uint8_t msg[RSA_BYTES];
   uint8_t msg_expected[RSA_BYTES];
@@ -222,5 +224,3 @@ void test512() {
 
    */
 }
-
-#endif //RSA_TEST_H
