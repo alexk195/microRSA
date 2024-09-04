@@ -25,7 +25,7 @@
  *
  * Generate sample data for 2048 bit (for 512 or 1024 accordingly)
  * >openssl genrsa -out rsa2048.pem 2048
- * Make sure it says "e is 65537". Then rounds=16
+ * Make sure it says "e is 65537". Then rounds=16, If you use -3 than "e is 3" and rounds=1
  * Dump modulus and copy to code modulus_s:
  * >openssl rsa -in rsa2048.pem -noout -modulus
  * Fill some clear text message
