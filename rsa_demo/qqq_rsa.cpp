@@ -37,7 +37,7 @@ void bignum8_free(bignum8* b) {
   free(b);
 }
 
-//copy value with adjusting capacity, returns 0 on success.
+//copy value with adjusting capacity
 void bignum8_copy(bignum8* source, bignum8* dest) {
   int minlen = bignum8_getminlen(source);
   bignum8_setlength(dest, minlen, true);
