@@ -45,24 +45,29 @@ void bignum8_copy(bignum8* source, bignum8* dest) {
   memcpy(dest->data, source->data, minlen);
 }
 
-void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
-  //result value: allocate and zero memory
-  bignum8_setlength(result, a->length + b->length);
-  for(int i = 0; i < a->length + b->length; i++) result->data[i] = 0;
 
+void bignum8_multiply(bignum8* result, bignum8* a, bignum8* b) {
+  // Allocate and zero memory for the result
+  bignum8_setlength(result, a->length + b->length);
+  memset(result->data, 0, result->length);
+
+  // Use nested loops to multiply each digit of a with each digit of b
+  uint32_t product;
+  uint32_t carry;
+  int k;
   for(int i = 0; i < a->length; i++) {
+    carry = 0;
+    k=i;
     for(int j = 0; j < b->length; j++) {
-      uint16_t carry = ((uint16_t)a->data[i] * b->data[j]);
-      int k = 0;
-      while(carry > 0) {
-        carry += result->data[i+j+k];
-        result->data[i+j+k] = (uint8_t)(carry);
-        carry >>= 8;
-        k++;
-      }
+      product = (uint32_t)a->data[i] * b->data[j] + result->data[k] + carry;
+      result->data[k] = (uint8_t)(product & 0xFF);
+      carry = product >> 8;
+      k++;
     }
+    result->data[i + b->length] = (uint8_t)carry;
   }
 }
+
 
 //#####################################################
 
@@ -173,7 +178,7 @@ void bignum8_setlength(bignum8* b, int len) {
   b->length = len;
 }
 
-//encode with exponent=3
+
 bignum8* bignum8_encode(bignum8* m, bignum8* n, uint8_t rounds) {
   bignum8 *v2 = bignum8_init(2*n->capacity);
   bignum8 *v = bignum8_init(n->capacity);
