@@ -137,14 +137,23 @@ void test512() {
   hex2bin(msg_expected_s, msg_expected, RSA_BYTES);
 
   print("\n\nRAW ENCRYPT: ");
-  //auto t1 = std::chrono::high_resolution_clock::now();
-  //auto t1 = micros();
+  #ifdef ARDUINO
+  auto t1 = micros();
+  #else
+  auto t1 = std::chrono::high_resolution_clock::now();
+  #endif
+
   uint8_t rv = rsa_encrypt_raw(modulus, msg, 1, RSA_BYTES);
-  //auto t2 = std::chrono::high_resolution_clock::now();
-  //auto t2 = micros();
-  //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-  //print("Duration:");
-  //printInt(t2-t1);
+  #ifdef ARDUINO
+  auto t2 = micros();
+  auto duration = t2-t1;
+  #else
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+  #endif
+
+  print("Duration:");
+  printInt(t2-t1);
 
   print("\nretval=");
   print(rv == 0 ? "OK" : " ERROR");
